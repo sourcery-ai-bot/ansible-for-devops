@@ -171,14 +171,15 @@ class Ec2Inventory(object):
  
     def is_cache_valid(self):
         ''' Determines if the cache files have expired, or if it is still valid '''
- 
+     
         if os.path.isfile(self.cache_path_cache):
             mod_time = os.path.getmtime(self.cache_path_cache)
             current_time = time()
-            if (mod_time + self.cache_max_age) > current_time:
-                if os.path.isfile(self.cache_path_index):
-                    return True
- 
+            if (mod_time + self.cache_max_age) > current_time and os.path.isfile(
+                self.cache_path_index
+            ):
+                return True
+
         return False
  
  
@@ -635,20 +636,20 @@ class Ec2Inventory(object):
  
     def get_host_info(self):
         ''' Get variables about a specific host '''
- 
+     
         if len(self.index) == 0:
             # Need to load index from cache
             self.load_index_from_cache()
- 
-        if not self.args.host in self.index:
+
+        if self.args.host not in self.index:
             # try updating the cache
             self.do_api_calls_update_cache()
-            if not self.args.host in self.index:
-                # host migh not exist anymore
-                return self.json_format_dict({}, True)
- 
+        if self.args.host not in self.index:
+            # host migh not exist anymore
+            return self.json_format_dict({}, True)
+
         (region, instance_id) = self.index[self.args.host]
- 
+
         instance = self.get_instance(region, instance_id)
         return self.json_format_dict(self.get_host_info_dict_from_instance(instance), True)
  
@@ -674,10 +675,9 @@ class Ec2Inventory(object):
     def get_inventory_from_cache(self):
         ''' Reads the inventory from the cache file and returns it as a JSON
         object '''
- 
+     
         cache = open(self.cache_path_cache, 'r')
-        json_inventory = cache.read()
-        return json_inventory
+        return cache.read()
  
  
     def load_index_from_cache(self):
@@ -690,11 +690,10 @@ class Ec2Inventory(object):
  
     def write_to_cache(self, data, filename):
         ''' Writes data in JSON format to a file '''
- 
+     
         json_data = self.json_format_dict(data, True)
-        cache = open(filename, 'w')
-        cache.write(json_data)
-        cache.close()
+        with open(filename, 'w') as cache:
+            cache.write(json_data)
  
  
     def to_safe(self, word):

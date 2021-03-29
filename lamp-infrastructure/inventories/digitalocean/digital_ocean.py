@@ -194,10 +194,9 @@ or environment variables (DO_API_TOKEN)''')
 
         if self.is_cache_valid:
             self.load_from_cache()
-            if len(self.data) == 0:
-                if self.args.force_cache:
-                    print('''Cache is empty and --force-cache was specified''')
-                    sys.exit(-1)
+            if not self.data and self.args.force_cache:
+                print('''Cache is empty and --force-cache was specified''')
+                sys.exit(-1)
 
         self.manager = DoManager(None, self.api_token, api_version=2)
 
@@ -324,7 +323,11 @@ or environment variables (DO_API_TOKEN)''')
         if self.args.force_cache:
             return
         # We always get fresh droplets
-        if self.is_cache_valid() and not (resource=='droplets' or resource is None):
+        if (
+            self.is_cache_valid()
+            and resource != 'droplets'
+            and resource is not None
+        ):
             return
         if self.args.refresh_cache:
             resource=None
@@ -409,10 +412,7 @@ or environment variables (DO_API_TOKEN)''')
         droplet = self.manager.show_droplet(host)
 
         # Put all the information in a 'do_' namespace
-        info = {}
-        for k, v in droplet.items():
-            info['do_'+k] = v
-
+        info = {'do_'+k: v for k, v in droplet.items()}
         return {'droplet': info}
 
 
@@ -434,9 +434,8 @@ or environment variables (DO_API_TOKEN)''')
     def load_from_cache(self):
         ''' Reads the data from the cache file and assigns it to member variables as Python Objects'''
         try:
-            cache = open(self.cache_filename, 'r')
-            json_data = cache.read()
-            cache.close()
+            with open(self.cache_filename, 'r') as cache:
+                json_data = cache.read()
             data = json.loads(json_data)
         except IOError:
             data = {'data': {}, 'inventory': {}}
@@ -450,9 +449,8 @@ or environment variables (DO_API_TOKEN)''')
         data = { 'data': self.data, 'inventory': self.inventory }
         json_data = json.dumps(data, sort_keys=True, indent=2)
 
-        cache = open(self.cache_filename, 'w')
-        cache.write(json_data)
-        cache.close()
+        with open(self.cache_filename, 'w') as cache:
+            cache.write(json_data)
 
 
     ###########################################################################

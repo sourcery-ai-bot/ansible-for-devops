@@ -270,10 +270,9 @@ class DigitalOceanInventory(object):
 
         if self.is_cache_valid():
             self.load_from_cache()
-            if len(self.data) == 0:
-                if self.args.force_cache:
-                    sys.stderr.write('Cache is empty and --force-cache was specified\n')
-                    sys.exit(-1)
+            if not self.data and self.args.force_cache:
+                sys.stderr.write('Cache is empty and --force-cache was specified\n')
+                sys.exit(-1)
 
         self.manager = DoManager(self.api_token)
 
@@ -402,7 +401,11 @@ class DigitalOceanInventory(object):
         if self.args.force_cache and os.path.isfile(self.cache_filename):
             return
         # We always get fresh droplets
-        if self.is_cache_valid() and not (resource == 'droplets' or resource is None):
+        if (
+            self.is_cache_valid()
+            and resource != 'droplets'
+            and resource is not None
+        ):
             return
         if self.args.refresh_cache:
             resource = None
@@ -533,10 +536,7 @@ class DigitalOceanInventory(object):
     @staticmethod
     def do_namespace(data):
         """ Returns a copy of the dictionary with all the keys put in a 'do_' namespace """
-        info = {}
-        for k, v in data.items():
-            info['do_' + k] = v
-        return info
+        return {'do_' + k: v for k, v in data.items()}
 
 
 ###########################################################################
